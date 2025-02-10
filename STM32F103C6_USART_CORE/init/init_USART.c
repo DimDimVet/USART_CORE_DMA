@@ -31,7 +31,7 @@ void Config_LED()//Config GpioC pin13 LED
 		GPIOC->CRH &=~(GPIO_CRH_CNF13|GPIO_CRH_MODE13);
     GPIOC->CRH|=(~GPIO_CRH_CNF13)|GPIO_CRH_MODE13_1;
 		GPIOC->BSRR = GPIO_BSRR_BS13;        // Установить
-    GPIOC->BSRR = GPIO_BSRR_BR13;        // Сбросить
+    //GPIOC->BSRR = GPIO_BSRR_BR13;        // Сбросить
 }
 
 void Config_GPIO_USART()
@@ -39,32 +39,44 @@ void Config_GPIO_USART()
 		GPIOA->CRL |= (GPIO_CRL_MODE2_1 | GPIO_CRL_CNF2_1); // PA2 на выход, альт режим
     GPIOA->CRL |= (GPIO_CRL_CNF3_0); // PA3 на вход
 		
-		//USART2->BRR = 0x1D4C; // Baud rate 9600(для 72MHz)
-		USART2->BRR = 0xEA6; // Baud rate 9600(для 72MHz)
-    USART2->CR1 |= USART2->CR1 |= USART_CR1_TE | USART_CR1_RE | USART_CR1_UE | USART_CR1_RXNEIE; // Включить TX, RX и прерывание
+		//USART2->BRR = 0x1D4C; // Baud rate 9600(для 16MHz кварца)
+		USART2->BRR = 0xEA6; // Baud rate 9600(для 8MHz кварца)
+		USART2->CR1 |= USART_CR1_UE ; // Включить USART
+    USART2->CR1 |= USART_CR1_TE | USART_CR1_RE ; // Включить TX, RX
+		USART2->CR1 |= USART_CR1_RXNEIE; // Включить прерывание
 
 		NVIC_EnableIRQ(USART2_IRQn); // Разрешить прерывания для USART2
 }
 
-void USART2_SendChar(char c)
+int USART2_GetStatus()//Проверим окончание чтения
 {
-    while (!(USART2->SR & USART_SR_TXE))
+	if(USART2->SR & USART_SR_RXNE)
+	{
+		return 1;
+	}
+		return 0;
+}
+
+char USART2_ReadChar()//считываем регистр 
+{
+	return USART2->DR;
+}
+
+void USART2_SetChar(char c)//Установка символа
+{
+    while (!(USART2->SR & USART_SR_TXE))//Проверим окончание передачи
 		{
-			
 		}
     USART2->DR = c;
 }
 
-void USART2_SendString(char* str)
+void USART2_SetString(char* str)//Установка строки по символьно
 {
-    while (*str)
+		int size = strlen(str);
+		
+		for(int i=0; i<size;i++)
 		{
-        USART2_SendChar(*str++);
-    }
+			USART2_SetChar(str[i]);
+		}
 }
 
-char USART2_ReceiveChar(void)
-{
-    while (!(USART2->SR & USART_SR_RXNE));
-    return USART2->DR;
-}

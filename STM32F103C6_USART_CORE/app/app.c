@@ -1,28 +1,50 @@
 #include "app.h"
 
+char rezultStr [SIZESTR];
 char receivedChar;
-
-void USART2_IRQHandler(void)
-{
-    if (USART2->SR & USART_SR_RXNE)// Проверка на получение данных
-		{ 
-        receivedChar = USART2->DR; // Чтение данных
-        USART2_SendChar(receivedChar); // Эхо символа
-				LED();
-    }
-}
+char* greetingsStr="Prived STM32F103";
+char* partingStr="BayBay STM32F103";
+char* errorStr="error command";
 
 int main()
 {
-
 	Init_USART();
 
 	while(1)
 	{
-		//LED();
-		delay_ms(300);//ждем
-		
+
 	}
 	return 0;
 }
 
+void USART2_IRQHandler(void)
+{
+		LED();
+		//
+		ExecutorTerminal();
+		//
+		LED();
+}
+
+void ExecutorTerminal()
+{
+		if (USART2_GetStatus())// Проверка на получение
+		{ 
+        receivedChar = USART2_ReadChar(); // Читаем
+				if(receivedChar==CHAR_COMMAND1)
+				{
+						snprintf(rezultStr, sizeof rezultStr, "%s command: %c", greetingsStr,receivedChar);
+						USART2_SetString(rezultStr);
+				}
+				else if(receivedChar==CHAR_COMMAND0)
+				{
+						snprintf(rezultStr, sizeof rezultStr, "%s command: %c", partingStr,receivedChar);
+						USART2_SetString(rezultStr);
+				}
+				else
+				{
+						snprintf(rezultStr, sizeof rezultStr, "%s: %c", errorStr,receivedChar);
+						USART2_SetString(rezultStr);
+				}
+    }
+}
