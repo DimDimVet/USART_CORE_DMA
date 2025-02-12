@@ -8,7 +8,7 @@ char* errorStr="error command";
 
 int main()
 {
-	Init_USART();
+	Init_USART(BAUND_RATE);
 
 	while(1)
 	{

@@ -1,17 +1,16 @@
 #include "init_USART.h"
 
-void Init_USART()//main init usart
+void Init_USART(int baudRate)//main init usart
 {
-	//Led
-	Enable_RCC_APB2();
+	Enable_RCC_AHB1();
 	Config_LED();
 	//
 	Enable_RCC_APB1();
-	Enable_RCC_AHB1();
-	Config_GPIO_USART();
+	
+	Config_GPIO_USART(baudRate);
 }
 
-void Enable_RCC_AHB1()//GpioA usart
+void Enable_RCC_AHB1()//GpioA usart, GpioA pin7 LED
 {
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
 }
@@ -21,34 +20,32 @@ void Enable_RCC_APB1()//Usart2
 	RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
 }
 
-void Enable_RCC_APB2()//GpioC pin13 LED, 
+void LED()//GpioA pin7 LED
 {
-	//RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
-	//RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
+    GPIOA->ODR ^= GPIO_ODR_OD7;
 }
 
-void LED()//GpioC pin13 LED
+void Config_LED()//Config GpioA pin6 pin7 LED
 {
-    //GPIOC->ODR ^= GPIO_ODR_ODR13;
+		GPIOA->MODER &= ~ (GPIO_MODER_MODER6|GPIO_MODER_MODER7); // сброс
+    GPIOA->MODER |= (GPIO_MODER_MODER6_0|GPIO_MODER_MODER7_0);//режим на выход
+    GPIOA->OSPEEDR &= ~(GPIO_OSPEEDR_OSPEED6|GPIO_OSPEEDR_OSPEED7); // сброс скорости
+    GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEED6_0|GPIO_OSPEEDR_OSPEED7_0); // установка средней скорости
+    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPD6|GPIO_PUPDR_PUPD7); // сброс режим подтяжки
+    GPIOA->PUPDR |= (GPIO_PUPDR_PUPD6_0|GPIO_PUPDR_PUPD7_0); // установка подтяжки к + (1)  РА0
+    GPIOA->OTYPER &= ~ (GPIO_OTYPER_OT6|GPIO_OTYPER_OT7); // сброс режима нагрузки
+    GPIOA->OTYPER |= (GPIO_OTYPER_OT6|GPIO_OTYPER_OT7); // установка в режим с открытым коллектором
+		GPIOA->ODR |= (GPIO_ODR_OD6|GPIO_ODR_OD7);
 }
 
-void Config_LED()//Config GpioC pin13 LED
-{
-		//GPIOC->CRH &=~(GPIO_CRH_CNF13|GPIO_CRH_MODE13);
-    //GPIOC->CRH|=(~GPIO_CRH_CNF13)|GPIO_CRH_MODE13_1;
-		//GPIOC->BSRR = GPIO_BSRR_BS13;        // Установить
-    ////GPIOC->BSRR = GPIO_BSRR_BR13;        // Сбросить
-}
-
-void Config_GPIO_USART()
+void Config_GPIO_USART(int baudRate)
 {
 		GPIOA->MODER &= ~(GPIO_MODER_MODER2 | GPIO_MODER_MODER3);//// Настраиваем пины PA2 (TX) и PA3 (RX)
 		
 		GPIOA->MODER |= (2 << GPIO_MODER_MODER2_Pos) | (2 << GPIO_MODER_MODER3_Pos); // Установим альтернативный режим
 		GPIOA->AFR[0] |= (7 << GPIO_AFRL_AFSEL2_Pos) | (7 << GPIO_AFRL_AFSEL3_Pos); // AF7 для USART2
 	
-		//USART2->BRR = 0x8B; // Baud rate 9600(для 16MHz кварца)
-		USART2->BRR = 0x8B; // Baud rate 9600(для 8MHz кварца)??
+		USART2->BRR = SystemCoreClock/baudRate; // SystemCoreClock/Baudrate 
 		USART2->CR1 |= USART_CR1_UE; // Включить USART2
     USART2->CR1 |= USART_CR1_TE | USART_CR1_RE; // Включить TX, RX
 		USART2->CR1 |= USART_CR1_RXNEIE; // Включить прерывание

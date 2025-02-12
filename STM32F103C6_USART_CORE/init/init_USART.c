@@ -1,13 +1,13 @@
 #include "init_USART.h"
 
-void Init_USART()//main init usart
+void Init_USART(int baudRate)//main init usart
 {
 	//Led
 	Enable_RCC_APB2();
 	Config_LED();
 	//
 	Enable_RCC_APB1();
-	Config_GPIO_USART();
+	Config_GPIO_USART(baudRate);
 }
 
 void Enable_RCC_APB1()//Usart2
@@ -34,13 +34,12 @@ void Config_LED()//Config GpioC pin13 LED
     //GPIOC->BSRR = GPIO_BSRR_BR13;        // Сбросить
 }
 
-void Config_GPIO_USART()
+void Config_GPIO_USART(int baudRate)
 {
 		GPIOA->CRL |= (GPIO_CRL_MODE2_1 | GPIO_CRL_CNF2_1); // PA2 на выход, альт режим
     GPIOA->CRL |= (GPIO_CRL_CNF3_0); // PA3 на вход
 		
-		//USART2->BRR = 0x1D4C; // Baud rate 9600(для 16MHz кварца)
-		USART2->BRR = 0xEA6; // Baud rate 9600(для 8MHz кварца)
+		USART2->BRR = SystemCoreClock/baudRate; // SystemCoreClock/Baudrate 
 		USART2->CR1 |= USART_CR1_UE ; // Включить USART
     USART2->CR1 |= USART_CR1_TE | USART_CR1_RE ; // Включить TX, RX
 		USART2->CR1 |= USART_CR1_RXNEIE; // Включить прерывание
