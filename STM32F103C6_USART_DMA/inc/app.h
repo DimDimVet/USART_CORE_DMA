@@ -11,8 +11,5 @@
 
 void ExecutorTerminal(void);
 
-void USART1_ReceiveData(char *buffer, uint16_t size);
-void USART1_SendData(uint8_t *data, uint16_t size) ;
-
 
 #endif

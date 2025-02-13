@@ -1,23 +1,26 @@
 #include "app.h"
 
+
 char rezultStr [SIZESTR];
 char receivedChar;
 char* greetingsStr="Prived STM32F103";
 char* partingStr="BayBay STM32F103";
 char* errorStr="error command";
 
-uint8_t dataBuf[10];
-char buffer[10];
-uint8_t buffer1[100]="FTRYDJJS";
-int isRun=1;
 
 int main()
 {
-	
+	int count=0;
 	Init_USART(BAUND_RATE);
-
+	
 	while(1)
 	{
+		
+		if(count<5)
+		{
+			
+			count++;
+		}
 			
 	}
 	return 0;
@@ -25,40 +28,45 @@ int main()
 
 void USART1_IRQHandler(void)
 {
+		//LED();
+		//
+		//ExecutorTerminal();
+	  //DMA1_Channel4->CCR |= DMA_CCR4_EN; // Запуск передачи данных
+	DMA1_Channel5->CPAR = (uint32_t)&USART1->DR;
+	DMA1_Channel5->CCR |= DMA_CCR5_EN | DMA_CCR1_DIR;
+		//
+		//LED();
+}
+
+void DMA1_Channel4_IRQHandler() 
+	{
 		LED();
-		//
-		ExecutorTerminal();
-		//USART1_ReceiveData(buffer, sizeof(buffer));
-		//USART1_SendData(buffer, sizeof(buffer));
-		//
+    if (DMA1->ISR & DMA_ISR_TCIF4)
+			{ // Проверка флага завершения передачи
+        DMA1->IFCR |= DMA_IFCR_CTCIF4; // Сбрасываем флаг
+        // Действия по завершению передачи
+      }
 		LED();
 }
 
-void USART1_ReceiveData(char *buffer, uint16_t size)
- {
-    DMA1_Channel4->CNDTR = size; // Устанавливаем количество данных
-    DMA1_Channel4->CMAR = (uint32_t)buffer; // Указываем адрес буфера
-    DMA1_Channel4->CPAR = (uint32_t)&(USART1->DR); // Указываем адрес USART
-    DMA1_Channel4->CCR |= DMA_CCR1_EN; // Запуск DMA
-}
-
-void USART1_SendData(uint8_t *data, uint16_t size) 
+void DMA1_Channel5_IRQHandler() 
 {
-
-		
-//				while (!(USART1->SR & USART_SR_TXE))//Проверим окончание передачи
-//				{
-//				}
-				USART1->DR = data[0];
-    
+	LED();
+    if (DMA1->ISR & DMA_ISR_TCIF1) 
+			{ // Проверяем флаг завершения передачи
+        DMA1->IFCR |= DMA_IFCR_CTCIF1; // Сбрасываем флаг
+        // Обработка полученных данных
+       //ProcessReceivedData(rx_buffer); // Ваш метод обработки
+        DMA1_Channel5->CNDTR = 1; // Обновляем количество данных (снова ожидаем 1 байт)
+        DMA1_Channel5->CCR |= DMA_CCR1_EN; // Включаем DMA снова
+    }
+		LED();
 }
-
 
 void ExecutorTerminal()
 {
 		if (USART1_GetStatus())// Проверка на получение
 		{ 
-		
         receivedChar = USART1_ReadChar(); // Читаем
 
 				if(receivedChar==CHAR_COMMAND1)
@@ -73,7 +81,7 @@ void ExecutorTerminal()
 				}
 				else
 				{
-						snprintf(rezultStr, sizeof rezultStr, "%s: %c", errorStr,buffer[0]);
+						snprintf(rezultStr, sizeof rezultStr, "%s: %c", errorStr,receivedChar);
 						USART1_SetString(rezultStr);
 				}
     }
