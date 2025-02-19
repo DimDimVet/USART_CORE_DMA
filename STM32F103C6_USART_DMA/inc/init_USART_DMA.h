@@ -18,7 +18,6 @@ void Config_DMA1(void);
 int DMA1_GetStatus();//status Rx
 char DMA1_ReadChar();//read DR
 
-void DMA1_SetChar(char c);
 void DMA1_SetString(char* str);
 
 #endif

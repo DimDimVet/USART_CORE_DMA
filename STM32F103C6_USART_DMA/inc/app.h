@@ -9,7 +9,12 @@
 #define CHAR_COMMAND0 '0'
 #define CHAR_COMMAND1 '1'
 
-void ExecutorTerminal(void);
+char rezultStr [SIZESTR];
+char receivedChar;
+char* greetingsStr="Prived STM32F103";
+char* partingStr="BayBay STM32F103";
+char* errorStr="error command";
 
+void ExecutorTerminal(void);
 
 #endif

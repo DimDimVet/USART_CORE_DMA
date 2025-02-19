@@ -1,10 +1,5 @@
 #include "app.h"
 
-char rezultStr [SIZESTR];
-char receivedChar;
-char* greetingsStr="Prived STM32F103";
-char* partingStr="BayBay STM32F103";
-char* errorStr="error command";
 
 int main()
 {

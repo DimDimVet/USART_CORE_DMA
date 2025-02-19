@@ -5,7 +5,7 @@ void Init_USART(int baudRate)//main init usart
 	Enable_RCC_AHB1();
 	Config_LED();
 	//
-	Enable_RCC_APB1();
+	Enable_RCC_APB2();
 	
 	Config_GPIO_USART(baudRate);
 }
@@ -15,9 +15,9 @@ void Enable_RCC_AHB1()//GpioA usart, GpioA pin7 LED
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
 }
 
-void Enable_RCC_APB1()//Usart2
+void Enable_RCC_APB2()//Usart1
 {
-	RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
+	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
 }
 
 void LED()//GpioA pin7 LED
@@ -40,49 +40,49 @@ void Config_LED()//Config GpioA pin6 pin7 LED
 
 void Config_GPIO_USART(int baudRate)
 {
-		GPIOA->MODER &= ~(GPIO_MODER_MODER2 | GPIO_MODER_MODER3);//// Настраиваем пины PA2 (TX) и PA3 (RX)
+		GPIOA->MODER &= ~(GPIO_MODER_MODER9 | GPIO_MODER_MODER10);//// Настраиваем пины PA9 (TX) и PA10 (RX)
 
-		GPIOA->MODER |= (GPIO_MODER_MODER2_1) | (GPIO_MODER_MODER3_1); // Установим альтернативный режим
-		GPIOA->AFR[0] |= (GPIO_AFRL_AFSEL2_0|GPIO_AFRL_AFSEL2_1|GPIO_AFRL_AFSEL2_2) 
-											| (GPIO_AFRL_AFSEL3_0|GPIO_AFRL_AFSEL3_1|GPIO_AFRL_AFSEL3_2); // AF7 для USART2
-	
-		USART2->BRR = SystemCoreClock/baudRate; // SystemCoreClock/Baudrate 
-		USART2->CR1 |= USART_CR1_UE; // Включить USART2
-    USART2->CR1 |= USART_CR1_TE | USART_CR1_RE; // Включить TX, RX
-		USART2->CR1 |= USART_CR1_RXNEIE; // Включить прерывание
+		GPIOA->MODER |= (GPIO_MODER_MODER9_1) | (GPIO_MODER_MODER10_1); // Установим альтернативный режим
+		GPIOA->AFR[1] |= (GPIO_AFRH_AFSEL9_0|GPIO_AFRH_AFSEL9_1|GPIO_AFRH_AFSEL9_2) 
+											| (GPIO_AFRH_AFSEL10_0|GPIO_AFRH_AFSEL10_1|GPIO_AFRH_AFSEL10_2); // AF7 для USART1
+		
+		USART1->BRR = SystemCoreClock/baudRate; // SystemCoreClock/Baudrate 
+		USART1->CR1 |= USART_CR1_UE; // Включить USART2
+    USART1->CR1 |= USART_CR1_TE | USART_CR1_RE; // Включить TX, RX
+		USART1->CR1 |= USART_CR1_RXNEIE; // Включить прерывание
 
-		NVIC_EnableIRQ(USART2_IRQn); // Разрешить прерывания для USART2
+		NVIC_EnableIRQ(USART1_IRQn); // Разрешить прерывания для USART2
 }
 
-int USART2_GetStatus()//Проверим окончание чтения
+int USART1_GetStatus()//Проверим окончание чтения
 {
-	if(USART2->SR & USART_SR_RXNE)
+	if(USART1->SR & USART_SR_RXNE)
 	{
 		return 1;
 	}
 		return 0;
 }
 
-char USART2_ReadChar()//считываем регистр 
+char USART1_ReadChar()//считываем регистр 
 {
-	return USART2->DR;
+	return USART1->DR;
 }
 
-void USART2_SetChar(char c)//Установка символа
+void USART1_SetChar(char c)//Установка символа
 {
-    while (!(USART2->SR & USART_SR_TXE))//Проверим окончание передачи
+    while (!(USART1->SR & USART_SR_TXE))//Проверим окончание передачи
 		{
 		}
-    USART2->DR = c;
+    USART1->DR = c;
 }
 
-void USART2_SetString(char* str)//Установка строки по символьно
+void USART1_SetString(char* str)//Установка строки по символьно
 {
 		int size = strlen(str);
 		
 		for(int i=0; i<size;i++)
 		{
-			USART2_SetChar(str[i]);
+			USART1_SetChar(str[i]);
 		}
 }
 
