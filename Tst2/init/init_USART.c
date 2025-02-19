@@ -59,38 +59,45 @@ void USART2_SetData(int data)
 	USART_SendData(USART2,data);
 }
 
-void DMA_UART_Init(uint8_t dataBufTx[10], uint8_t *dataBufRx)
+void DMA_UART_Init(uint8_t *dataBufTx, uint8_t *dataBufRx)
 {
  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);//
  RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
  
- USART_DeInit(USART1);
+// USART_DeInit(USART1);
+//	
+//	GPIO_InitTypeDef GPIO_USART_TX;
+//	GPIO_USART_TX.GPIO_Mode=GPIO_Mode_AF_PP;
+//	GPIO_USART_TX.GPIO_Pin=GPIO_Pin_9;
+//	GPIO_USART_TX.GPIO_Speed=GPIO_Speed_2MHz;
+//	
+//	GPIO_Init(GPIOA,&GPIO_USART_TX);
 	
-	GPIO_InitTypeDef GPIO_USART_TX;
-	GPIO_USART_TX.GPIO_Mode=GPIO_Mode_AF_PP;
-	GPIO_USART_TX.GPIO_Pin=GPIO_Pin_9;
-	GPIO_USART_TX.GPIO_Speed=GPIO_Speed_2MHz;
+	GPIOA->CRH |= (GPIO_CRH_MODE9_1 | GPIO_CRH_CNF9_1); // TX
+    GPIOA->CRH |= (GPIO_CRH_CNF10_0); // RX
 	
-	GPIO_Init(GPIOA,&GPIO_USART_TX);
-	
-	GPIO_InitTypeDef GPIO_USART_RX;
-	GPIO_USART_RX.GPIO_Mode=GPIO_Mode_IN_FLOATING;
-	GPIO_USART_RX.GPIO_Pin=GPIO_Pin_10;
-	GPIO_USART_RX.GPIO_Speed=GPIO_Speed_2MHz;
-	
-	GPIO_Init(GPIOA,&GPIO_USART_RX);
+//	GPIO_InitTypeDef GPIO_USART_RX;
+//	GPIO_USART_RX.GPIO_Mode=GPIO_Mode_IN_FLOATING;
+//	GPIO_USART_RX.GPIO_Pin=GPIO_Pin_10;
+//	GPIO_USART_RX.GPIO_Speed=GPIO_Speed_2MHz;
+//	
+//	GPIO_Init(GPIOA,&GPIO_USART_RX);
 	//
-	USART_InitTypeDef USART1_INIT;
-	USART1_INIT.USART_BaudRate=9600;
-	USART1_INIT.USART_HardwareFlowControl=USART_HardwareFlowControl_None;
-	USART1_INIT.USART_Mode=USART_Mode_Rx|USART_Mode_Tx;
-	USART1_INIT.USART_Parity=USART_Parity_No;
-	USART1_INIT.USART_StopBits=USART_StopBits_1;
-	USART1_INIT.USART_WordLength=USART_WordLength_8b;
-	
-	USART_Init(USART1,&USART1_INIT);
-	USART_Cmd(USART1,ENABLE);
+//	USART_InitTypeDef USART1_INIT;
+//	USART1_INIT.USART_BaudRate=9600;
+//	USART1_INIT.USART_HardwareFlowControl=USART_HardwareFlowControl_None;
+//	USART1_INIT.USART_Mode=USART_Mode_Rx|USART_Mode_Tx;
+//	USART1_INIT.USART_Parity=USART_Parity_No;
+//	USART1_INIT.USART_StopBits=USART_StopBits_1;
+//	USART1_INIT.USART_WordLength=USART_WordLength_8b;
+//	
+//	USART_Init(USART1,&USART1_INIT);
+//	USART_Cmd(USART1,ENABLE);
+USART1->BRR = SystemCoreClock/9600; // SystemCoreClock/Baudrate 
+		USART1->CR1 |= USART_CR1_UE ; // Включить USART
+    USART1->CR1 |= USART_CR1_TE | USART_CR1_RE ; // Включить TX, RX
+		USART1->CR1 |= USART_CR1_RXNEIE; // Включить прерывание
 	
  /*DMA_InitTypeDef DMA1_UsartInit;
  DMA1_UsartInit.DMA_PeripheralBaseAddr=(uint32_t)&(USART1->DR);//получим адрес usarta
@@ -148,18 +155,19 @@ void DMA_UART_Init(uint8_t dataBufTx[10], uint8_t *dataBufRx)
 //    DMA_InitStructRx.DMA_M2M = DMA_M2M_Disable;
 //    DMA_Init(DMA1_Channel5, &DMA_InitStructRx);
 
-	  DMA1_Channel5->CCR |= (DMA_CCR5_PL_0 | DMA_CCR5_MINC | DMA_CCR5_CIRC); // Высокий приоритет, инкремент, циклический режим
+	  DMA1_Channel5->CCR |= (DMA_CCR5_PL_0 | DMA_CCR5_PSIZE | DMA_CCR5_PINC | DMA_CCR5_CIRC); // Высокий приоритет, инкремент, циклический режим
     DMA1_Channel5->CNDTR = 10; // Количество данных
     DMA1_Channel5->CPAR = (uint32_t)&USART1->DR; // Адрес регистра данных USART
     DMA1_Channel5->CMAR = (uint32_t)dataBufRx; // Адрес буфера
 		DMA1_Channel5->CCR |= DMA_CCR5_TCIE;// разрешение прерыван
     DMA1_Channel5->CCR |= DMA_CCR5_EN; // Включение канала DMA
-	
+
 	//
-	DMA_Cmd(DMA1_Channel5,ENABLE);//запустим DMA
-	USART_DMACmd(USART1,USART_DMAReq_Rx,ENABLE);//переключим усарт на работу с дма
-		
-	DMA1->IFCR |= DMA_IFCR_CTCIF5;//сбрасываем флаг прерывания
+	//DMA_Cmd(DMA1_Channel5,ENABLE);//запустим DMA
+	//USART_DMACmd(USART1,USART_DMAReq_Rx,ENABLE);//переключим усарт на работу с дма
+		USART1->CR3 |=USART_CR3_DMAR;
+	//
+	//DMA1->IFCR |= DMA_IFCR_CTCIF5;//сбрасываем флаг прерывания
 	NVIC_EnableIRQ(DMA1_Channel5_IRQn); // Включение прерываний DMA
 }
 

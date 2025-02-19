@@ -21,19 +21,21 @@ void DMA1_Channel4_IRQHandler(void)
 		{
         DMA1->IFCR |= DMA_IFCR_CTCIF4; // Очистка флага
 			
-			  // Проверка, завершилась ли передача
-        if (DMA_GetCurrDataCounter(DMA1_Channel4) == 0) 
-					{
-            // Перезапуск передачи
-            count++;
-						if(count<5)
-							{
-								DMA_Cmd(DMA1_Channel4,DISABLE);
-								dataBufTx[count]='3';
-								DMA_SetCurrDataCounter(DMA1_Channel4, 10);
-								DMA_Cmd(DMA1_Channel4, ENABLE);
-							} 
-					}
+//			  // Проверка, завершилась ли передача
+//        if (DMA_GetCurrDataCounter(DMA1_Channel4) == 0) 
+//					{
+//            // Перезапуск передачи
+//            count++;
+//						if(count<3)
+//							{
+								
+//								dataBufTx[count]='3';
+//								DMA_SetCurrDataCounter(DMA1_Channel4, 10);
+//								DMA_Cmd(DMA1_Channel4, ENABLE);
+//								count=0;
+//							} 
+//					}
+//					else{DMA_Cmd(DMA1_Channel4,DISABLE);}
     }
 }
 
@@ -43,7 +45,7 @@ void DMA1_Channel5_IRQHandler()
 		{ // Проверка флага завершения передачи
         DMA1->IFCR |= DMA_IFCR_CTCIF5; // Сбрасываем флаг
         // Обработка полученных данных в rxBuffer
-			
+		
 			// Перезапуск передачи
 								
 								DMA_Cmd(DMA1_Channel4,DISABLE);
@@ -52,6 +54,9 @@ void DMA1_Channel5_IRQHandler()
 								DMA_Cmd(DMA1_Channel4, ENABLE);
 			
 			//DMA_Cmd(DMA1_Channel5,DISABLE);//запустим DMA
+//			DMA_Cmd(DMA1_Channel5, DISABLE);
+//			DMA_GetCurrDataCounter(DMA1_Channel5);
+//			DMA_Cmd(DMA1_Channel5, ENABLE);
     }
 }
 

@@ -11,7 +11,7 @@
 
 void USART_INIT(void);
 void USART2_SetData(int data);
-void DMA_UART_Init(uint8_t dataBufTx[10], uint8_t *dataBufRx);
+void DMA_UART_Init(uint8_t *dataBufTx, uint8_t *dataBufRx);
 //void USART1_SetData(uint8_t dataBuf[10]);
 
 #endif

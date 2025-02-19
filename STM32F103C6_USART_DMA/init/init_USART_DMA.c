@@ -1,9 +1,9 @@
 #include "INIT_USART_DMA.h"
 
-#define BUFFER_SIZE 64
-uint8_t txBuffer[BUFFER_SIZE] = "PRived, USART!";
-
-uint8_t rxBuffer[BUFFER_SIZE];
+char* startStr="STM32F103";
+int sizeTx, sizeRx=50;
+char* dataBufTx;
+char* dataBufRx;
 
 void Init_USART(int baudRate)//main init usart
 {
@@ -14,7 +14,6 @@ void Init_USART(int baudRate)//main init usart
 	Config_LED();
 	//
 	Config_GPIO_USART(baudRate);
-	Config_DMA1();
 }
 
 void Enable_RCC_AHB()//DMA1
@@ -22,22 +21,11 @@ void Enable_RCC_AHB()//DMA1
 	RCC->AHBENR |= RCC_AHBENR_DMA1EN;
 }
 
-//void Enable_RCC_APB1()//Usart2&&&&
-//{
-//	RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
-//}
-
-void Enable_RCC_APB2()//GpioC pin13 LED, GpioA usart, usart1
+void Enable_RCC_APB2()//GpioC pin13 LED, GpioA usart1
 {
-	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
-	
-	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
-  RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
-	//
-	
-	  RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; // Включение порта A
-    //RCC->APB1ENR |= RCC_APB1ENR_USART1EN; // Включение USART1
-    RCC->AHBENR |= RCC_AHBENR_DMA1EN; // Включение DMA1
+	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN; // Включение порта C Led
+	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; // Включение порта A usart
+	RCC->APB2ENR |= RCC_APB2ENR_USART1EN; // Включение  usart1
 }
 
 void LED()//GpioC pin13 LED
@@ -55,86 +43,88 @@ void Config_LED()//Config GpioC pin13 LED
 
 void Config_GPIO_USART(int baudRate)
 {
-		//GPIOA->CRH |= (GPIO_CRH_MODE9_1 | GPIO_CRH_CNF9_1); // PA9 на выход, альт режим TX
-    //GPIOA->CRH |= (GPIO_CRH_CNF10_0); // PA10 на вход RX
 		GPIOA->CRH |= (GPIO_CRH_MODE9_1 | GPIO_CRH_CNF9_1); // TX
     GPIOA->CRH |= (GPIO_CRH_CNF10_0); // RX
-	
 	
 		USART1->BRR = SystemCoreClock/baudRate; // SystemCoreClock/Baudrate 
 		USART1->CR1 |= USART_CR1_UE ; // Включить USART
     USART1->CR1 |= USART_CR1_TE | USART_CR1_RE ; // Включить TX, RX
 		USART1->CR1 |= USART_CR1_RXNEIE; // Включить прерывание
-
-		NVIC_EnableIRQ(USART1_IRQn); // Разрешить прерывания для USART1
 }
 
 void Config_DMA1()
 {
-	// Настройки DMA - USART1_TX
-    DMA1_Channel4->CCR |=DMA_CCR1_PL_0;
-		DMA1_Channel4->CCR |= DMA_CCR1_MINC;//включим режим перебора(в данном случае массива)
-		DMA1_Channel4->CCR |= DMA_CCR1_DIR;//направления чтение из памяти (в перефирию)
-		DMA1_Channel4->CNDTR = BUFFER_SIZE; // Количество данных
+	dataBufRx=malloc(sizeRx * sizeof(char));
+	
+	sizeTx = strlen(startStr);
+	dataBufTx = malloc(sizeTx * sizeof(char));
+	dataBufTx=startStr;
+	
+	//канал 4
+		DMA1_Channel4->CCR |= (DMA_CCR4_PL_0 //Приоритет канала
+													/*| DMA_CCR4_MSIZE_0*/ //Размер данных передатчика
+													| DMA_CCR4_MINC //Автоматическое увеличение адреса передатчика
+													| DMA_CCR4_DIR); // Направление передачи (от памяти к периферии
+    DMA1_Channel4->CNDTR = sizeTx; // Количество данных
     DMA1_Channel4->CPAR = (uint32_t)&USART1->DR; // Адрес регистра данных USART
-    DMA1_Channel4->CMAR = (uint32_t)txBuffer; // Адрес буфера
-    //DMA1_Channel4->CCR |= DMA_CCR4_EN; // Включение канала DMA
-		 // Настройки DMA - USART1_RX
-//		DMA1_Channel5->CCR |= DMA_CCR5_MINC;//включим режим перебора(в данном случае массива)
-//		DMA1_Channel5->CCR |= DMA_CCR5_DIR;//направления чтение из памяти (в перефирию)
-//		DMA1_Channel5->CCR |= DMA_CCR5_EN;//включим канал
-	
-//		DMA1_Channel5->CCR |= (DMA_CCR1_PL_0 | DMA_CCR1_MINC | DMA_CCR1_CIRC); // Высокий приоритет, инкремент, циклический режим
-//    DMA1_Channel5->CNDTR = BUFFER_SIZE; // Количество данных
-//    DMA1_Channel5->CPAR = (uint32_t)&USART1->DR; // Адрес регистра данных USART
-//    DMA1_Channel5->CMAR = (uint32_t)rxBuffer; // Адрес буфера
-//    //DMA1_Channel5->CCR |= DMA_CCR5_EN; // Включение канала DMA
-	
-	// Настройка DMA: Основные параметры
-    DMA1_Channel5->CCR = 0; // Сброс параметров канала
-    DMA1_Channel5->CNDTR = 1; // Количество данных (1 байт)
-    DMA1_Channel5->CPAR = (uint32_t)&USART1->DR; // Адрес регистра данных USART1
-    DMA1_Channel5->CMAR = (uint32_t)&rxBuffer; // Адрес буфера для приема (определите его заранее)
-    DMA1_Channel5->CCR |= DMA_CCR5_EN | DMA_CCR1_DIR; // Включение DMA, направление - от модуля USART к памяти
-
-    // Настройка приоритетов (при необходимости)
-    DMA1_Channel5->CCR |= DMA_CCR1_PL; // Выбор приоритета
-	
-		NVIC_EnableIRQ(DMA1_Channel4_IRQn); // Разрешение прерывания для DMA
+    DMA1_Channel4->CMAR = (uint32_t)dataBufTx; // Адрес буфера
+		DMA1_Channel4->CCR |= DMA_CCR4_TCIE;// разрешение прерыван
+    DMA1_Channel4->CCR |= DMA_CCR4_EN; // Включение канала DMA
 		
-		NVIC_SetPriority(DMA1_Channel5_IRQn, 1); // Установка приоритета
-    NVIC_EnableIRQ(DMA1_Channel5_IRQn); // Включение прерывания
+		USART1->CR3 |=USART_CR3_DMAT;//переключили дма на усарт - передача, DMAT = Tx
+	
+		DMA1->IFCR |= DMA_IFCR_CTCIF4;//сбрасываем флаг прерывания
+		NVIC_EnableIRQ(DMA1_Channel4_IRQn); // Включение прерываний DMA
+	
+	//канал 5
+		DMA1_Channel5->CCR |= (DMA_CCR5_PL_0 //Приоритет канала
+													| DMA_CCR5_PSIZE //Размер данных источника
+													| DMA_CCR5_PINC //Автоматическое увеличение адреса источника
+													| DMA_CCR5_CIRC); // циклический режим
+    DMA1_Channel5->CNDTR = sizeRx; // Количество данных
+    DMA1_Channel5->CPAR = (uint32_t)&USART1->DR; // Адрес регистра данных USART
+    DMA1_Channel5->CMAR = (uint32_t)dataBufRx; // Адрес буфера
+		DMA1_Channel5->CCR |= DMA_CCR5_TCIE;// разрешение прерыван
+    DMA1_Channel5->CCR |= DMA_CCR5_EN; // Включение канала DMA
+		
+		USART1->CR3 |=USART_CR3_DMAR;//переключили дма на усарт - чтение, DMAR = Rx
+	
+		DMA1->IFCR |= DMA_IFCR_CTCIF5;//сбрасываем флаг прерывания
+		NVIC_EnableIRQ(DMA1_Channel5_IRQn); // Включение прерываний DMA
+		
+		//free
+		//free(dataBufTx);
 }
 
-int USART1_GetStatus()//Проверим окончание чтения
+int DMA1_GetStatus()//Проверим окончание чтения
 {
-	if(USART1->SR & USART_SR_RXNE)
+	if(DMA1->ISR & DMA_ISR_TCIF5)
 	{
+		DMA1->IFCR |= DMA_IFCR_CTCIF5; // Очистка флага
 		return 1;
 	}
 		return 0;
 }
 
-char USART1_ReadChar()//считываем регистр 
+char DMA1_ReadChar()//считываем массив 
 {
-	return USART1->DR;
+	return dataBufRx[0];
 }
 
-void USART1_SetChar(char c)//Установка символа
+void DMA1_SetString(char* str)//Установка строки по символьно
 {
-    while (!(USART1->SR & USART_SR_TXE))//Проверим окончание передачи
-		{
-		}
-    USART1->DR = c;
-}
+		DMA1_Channel4->CCR &= ~DMA_CCR4_EN;
+	
+		sizeTx = strlen(str);
+		free(dataBufTx);
+		dataBufTx = malloc(sizeTx * sizeof(char));
+	  dataBufTx=str;
+//		for(int i=0; i<30;i++)
+//		{
+//			dataBufTx[i]=str[i];
+//		}
 
-void USART1_SetString(char* str)//Установка строки по символьно
-{
-		int size = strlen(str);
-		
-		for(int i=0; i<size;i++)
-		{
-			USART1_SetChar(str[i]);
-		}
+		DMA1_Channel4->CNDTR=sizeTx;
+		DMA1_Channel4->CCR |= DMA_CCR4_EN;
 }
 
